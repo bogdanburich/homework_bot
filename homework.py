@@ -1,3 +1,5 @@
+"""Проверяет актуальный статус домашней работы и отправляет сообщения."""
+
 import os
 import requests
 import time
@@ -34,7 +36,7 @@ logger = logger_setup(__name__)
 
 
 def send_message(bot, message):
-    """Отправляет сообщения в телеграм"""
+    """Отправляет сообщения в телеграм."""
     try:
         bot.send_message(TELEGRAM_CHAT_ID, message)
         logger.info('Сообщение успешно отправлено')
@@ -43,8 +45,7 @@ def send_message(bot, message):
 
 
 def get_api_answer(timestamp: int) -> dict:
-    """Возвращает корректный результат ответа от API Я.Практикума"""
-
+    """Возвращает корректный результат ответа от API Я.Практикума."""
     params = {'from_date': timestamp}
     response = requests.get(ENDPOINT, headers=HEADERS, params=params)
     """
@@ -61,8 +62,7 @@ def get_api_answer(timestamp: int) -> dict:
 
 
 def check_response(response) -> list:
-    """Проверяет ответ от API Я.Практикума на корректность"""
-
+    """Проверяет ответ от API Я.Практикума на корректность."""
     if not (
         isinstance(response, dict)
         and 'homeworks' in response.keys()
@@ -74,8 +74,7 @@ def check_response(response) -> list:
 
 
 def parse_status(homework) -> str:
-    """Извлекает информацию о конкретной домашней работе"""
-
+    """Извлекает информацию о конкретной домашней работе."""
     homework_name = homework['homework_name']
     homework_status = homework['status']
 
@@ -89,8 +88,7 @@ def parse_status(homework) -> str:
 
 
 def check_tokens() -> bool:
-    """Проверяет, что необходимые переменные окружения определены"""
-
+    """Проверяет, что необходимые переменные окружения определены."""
     variables_exists = (
         TELEGRAM_TOKEN is not None
         and TELEGRAM_CHAT_ID is not None
@@ -100,8 +98,7 @@ def check_tokens() -> bool:
 
 
 def main():
-    """Основная логика работы бота"""
-
+    """Основная логика работы бота."""
     error_message_sent = False
 
     bot = Bot(token=TELEGRAM_TOKEN)

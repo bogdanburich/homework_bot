@@ -1,8 +1,11 @@
+"""Настраивает логгирование."""
+
 import logging
 from sys import stdout
 
 
 def logger_setup(filename):
+    """Задает настройки и возвращает экземляр logger."""
     logging.basicConfig(
         filename=f'{filename}.log',
         filemode='a',
