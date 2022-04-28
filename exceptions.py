@@ -11,3 +11,9 @@ class FailedToSendMessage(Exception):
     """Не удалось отправить сообщение."""
 
     pass
+
+
+class HTTPError(Exception):
+    """Код ответа != 200."""
+
+    pass
