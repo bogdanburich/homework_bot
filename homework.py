@@ -68,10 +68,15 @@ def check_response(response) -> list:
     """Проверяет ответ от API Я.Практикума на корректность."""
     logging.info('Проверяем запрос на корректность')
 
-    response_is_dict = isinstance(response, dict)
-    homeworks_in_reponse = 'homeworks' in response
-    homeworks_is_list = isinstance(response.get('homeworks'), list)
-    current_date_in_response = 'current_date' in response
+    message = 'Неожиданный ответ от API Я.Практикума'
+
+    try:
+        response_is_dict = isinstance(response, dict)
+        homeworks_in_reponse = 'homeworks' in response
+        homeworks_is_list = isinstance(response.get('homeworks'), list)
+        current_date_in_response = 'current_date' in response
+    except Exception:
+        raise TypeError(message)
 
     if not all([
         response_is_dict,
@@ -79,7 +84,6 @@ def check_response(response) -> list:
         homeworks_is_list,
         current_date_in_response
     ]):
-        message = 'Неожиданный ответ от API Я.Практикума'
         raise TypeError(message)
 
     return response.get('homeworks')
@@ -119,9 +123,9 @@ def check_tokens() -> bool:
 
 def main():
     """Основная логика работы бота."""
-    error_message_sent = False
-
     bot = Bot(token=TELEGRAM_TOKEN)
+
+    prev_report = None
 
     if not check_tokens():
         message = 'Одна или несколько переменных окружения не определены'
@@ -141,7 +145,10 @@ def main():
             if homeworks:
                 homework = homeworks[0]
                 message = parse_status(homework)
-                send_message(bot, message)
+                current_report = message
+                if not current_report == prev_report:
+                    send_message(bot, message)
+                    prev_report = current_report.copy()
             else:
                 logger.info('Обновлений не найдено')
 
@@ -153,9 +160,10 @@ def main():
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             logger.error(message)
-            if not error_message_sent:
-                error_message_sent = True
+            current_report = message
+            if not current_report == prev_report:
                 send_message(bot, message)
+                prev_report = current_report.copy()
 
         finally:
             time.sleep(RETRY_TIME)
