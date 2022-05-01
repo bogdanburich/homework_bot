@@ -68,23 +68,12 @@ def check_response(response) -> list:
     """Проверяет ответ от API Я.Практикума на корректность."""
     logging.info('Проверяем запрос на корректность')
 
-    message = 'Неожиданный ответ от API Я.Практикума'
-
-    try:
-        response_is_dict = isinstance(response, dict)
-        homeworks_in_reponse = 'homeworks' in response
-        homeworks_is_list = isinstance(response.get('homeworks'), list)
-        current_date_in_response = 'current_date' in response
-    except Exception:
-        raise TypeError(message)
-
-    if not all([
-        response_is_dict,
-        homeworks_in_reponse,
-        homeworks_is_list,
-        current_date_in_response
-    ]):
-        raise TypeError(message)
+    if not isinstance(response, dict):
+        raise TypeError('Ответ API не является словарем')
+    if 'homeworks' not in response or 'current_date' not in response:
+        raise KeyError('Ключ homeworks или current_date не найден в ответе')
+    if not isinstance(response.get('homeworks'), list):
+        raise TypeError('homeworks не является списком')
 
     return response.get('homeworks')
 
@@ -129,11 +118,8 @@ def main():
 
     if not check_tokens():
         message = 'Одна или несколько переменных окружения не определены'
-        try:
-            logger.critical(message)
-            sys.exit(message)
-        except Exception:
-            logger.critical(message)
+        logger.critical(message)
+        sys.exit(message)
 
     current_timestamp = int(time.time())
 
@@ -148,7 +134,7 @@ def main():
                 current_report = message
                 if not current_report == prev_report:
                     send_message(bot, message)
-                    prev_report = current_report.copy()
+                    prev_report = str(current_report)
             else:
                 logger.info('Обновлений не найдено')
 
@@ -163,7 +149,7 @@ def main():
             current_report = message
             if not current_report == prev_report:
                 send_message(bot, message)
-                prev_report = current_report.copy()
+                prev_report = str(current_report)
 
         finally:
             time.sleep(RETRY_TIME)
