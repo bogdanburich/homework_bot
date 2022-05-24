@@ -1,10 +1,9 @@
-"""Проверяет актуальный статус домашней работы и отправляет сообщения."""
+"""Checks the current status of homework and sends messages."""
 
 import os
 import sys
 import requests
 import time
-import logging  # строчка для теста
 from http import HTTPStatus
 
 from dotenv import load_dotenv
@@ -12,7 +11,6 @@ from telegram import Bot
 
 from exceptions import UndefinedHomeworkStatus, FailedToSendMessage, HTTPError
 from logger import logger_setup
-logging  # строчка для теста
 
 
 load_dotenv()
@@ -28,9 +26,9 @@ HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
 
 VERDICTS = {
-    'approved': 'Работа проверена: ревьюеру всё понравилось. Ура!',
-    'reviewing': 'Работа взята на проверку ревьюером.',
-    'rejected': 'Работа проверена: у ревьюера есть замечания.'
+    'approved': 'Checked: everything is fine',
+    'reviewing': 'Homework was taken for checking',
+    'rejected': 'Checked: reviewer has comments'
 }
 
 
@@ -38,70 +36,70 @@ logger = logger_setup(__name__)
 
 
 def send_message(bot, message):
-    """Отправляет сообщения в телеграм."""
+    """Sends messages to telegram."""
     try:
         bot.send_message(TELEGRAM_CHAT_ID, message)
-        logger.info('Сообщение успешно отправлено')
+        logger.info('Message sent successfully')
     except Exception:
-        raise FailedToSendMessage('Не удалось отправить сообщение')
+        raise FailedToSendMessage('Failed to send message')
 
 
 def get_api_answer(timestamp: int) -> dict:
-    """Возвращает корректный результат ответа от API Я.Практикума."""
-    logging.info('Отправляем запрос к API')
+    """Return correct answers from Yandex.Practicum API."""
+    logger.info('Send request to API')
 
     params = {'from_date': timestamp}
     try:
         response = requests.get(ENDPOINT, headers=HEADERS, params=params)
     except Exception as error:
-        raise ConnectionError('Не удалось получить ответ от API') from error
+        raise ConnectionError('Failded to get response from API') from error
 
     if not response.status_code == HTTPStatus.OK:
-        message = ('Кажется c API Я.Практикума что-то не так.\n'
-                   f'Код ответа: {response.status_code}.\n'
+        message = ('Seems to be something wrong with API.\n'
+                   f'Response status code: {response.status_code}.\n'
                    f'URL: {response.url}.')
         raise HTTPError(message)
     return response.json()
 
 
 def check_response(response) -> list:
-    """Проверяет ответ от API Я.Практикума на корректность."""
-    logging.info('Проверяем запрос на корректность')
+    """Check response for correctness."""
+    logger.info('Check response for correctness')
 
     if not isinstance(response, dict):
-        raise TypeError('Ответ API не является словарем')
+        raise TypeError('Response is not a dict')
     if 'homeworks' not in response or 'current_date' not in response:
-        raise KeyError('Ключ homeworks или current_date не найден в ответе')
+        raise KeyError('Key homeworks or current_date have not found in response')
     if not isinstance(response.get('homeworks'), list):
-        raise TypeError('homeworks не является списком')
+        raise TypeError('homeworks is not a list')
 
     return response.get('homeworks')
 
 
 def parse_status(homework) -> str:
-    """Извлекает информацию о конкретной домашней работе."""
-    logging.info('Извлекаем информацию о домашней работе')
+    """Parse information about homework."""
+    logger.info('Parse information about homework')
 
     if (
         'homework_name' not in homework
         or 'status' not in homework
     ):
-        raise KeyError('Неожиданный ответ от API Я.Практикума')
+        raise KeyError('Unexpected response from API')
 
     homework_name = homework.get('homework_name')
     verdict = homework.get('status')
 
     if verdict not in VERDICTS:
-        message = 'Неожиданный статус проверки работы'
+        message = 'Unexpected homework status'
         raise UndefinedHomeworkStatus(message)
 
     verdict = VERDICTS.get(verdict)
 
-    return f'Изменился статус проверки работы "{homework_name}". {verdict}'
+    return f'Homework checking status changed "{homework_name}". {verdict}'
 
 
 def check_tokens() -> bool:
-    """Проверяет, что необходимые переменные окружения определены."""
+    """Checks that all enviroment variables are defined."""
     variables_exists = all([
         TELEGRAM_TOKEN,
         TELEGRAM_CHAT_ID,
@@ -111,13 +109,13 @@ def check_tokens() -> bool:
 
 
 def main():
-    """Основная логика работы бота."""
+    """Main logic."""
     bot = Bot(token=TELEGRAM_TOKEN)
 
     prev_report = None
 
     if not check_tokens():
-        message = 'Одна или несколько переменных окружения не определены'
+        message = 'One or several enviroment variables are not defined'
         logger.critical(message)
         sys.exit(message)
 
@@ -136,7 +134,7 @@ def main():
                     send_message(bot, message)
                     prev_report = str(current_report)
             else:
-                logger.info('Обновлений не найдено')
+                logger.info('No updates found')
 
             current_timestamp = (
                 response.get('current_date')
@@ -144,7 +142,7 @@ def main():
             )
 
         except Exception as error:
-            message = f'Сбой в работе программы: {error}'
+            message = f'Application crashed: {error}'
             logger.error(message)
             current_report = message
             if not current_report == prev_report:
